@@ -21,6 +21,14 @@ from packaging.version import Version as PkgVersion
 
 logger = logging.getLogger(__name__)
 
+try:
+    from megatron.core.utils import internal_api
+
+except ImportError:
+    from contextlib import nullcontext
+
+    internal_api = nullcontext
+
 # Detect if Transformer Engine is installed
 try:
     import transformer_engine  # pylint: disable=W0611
@@ -143,6 +151,7 @@ except:
     HAVE_TE_POST_ALL_GATHER_PROCESSING = False
 
 
+@internal_api
 def is_te_min_version(vers, check_equality=True):
     """Check if minimum version of `transformer-engine` is installed."""
     if not isinstance(TE_VERSION, PkgVersion):
@@ -154,26 +163,31 @@ def is_te_min_version(vers, check_equality=True):
         return TE_VERSION > PkgVersion(vers)
 
 
+@internal_api
 def is_float8tensor(tensor: torch.Tensor) -> bool:
     """Check if a tensor is a FP8 tensor."""
     return HAVE_TE and isinstance(tensor, FP8_TENSOR_CLASS)
 
 
+@internal_api
 def is_blockwise_float8tensor(tensor: torch.Tensor) -> bool:
     """Check if a tensor is a Blockwise FP8 tensor."""
     return HAVE_TE_BLOCKWISE_FP8TENSOR and isinstance(tensor, Float8BlockwiseQTensor)
 
 
+@internal_api
 def fp8_need_transpose_data(tensor: torch.Tensor) -> bool:
     """Check if a FP8 tensor needs transpose data."""
     return HAVE_TE_MXFP8TENSOR and isinstance(tensor, MXFP8Tensor)
 
 
+@internal_api
 def fp8_need_transpose_data_for_meta_device_init(module: TransformerEngineBaseModule) -> bool:
     """Check if a FP8 tensor needs transpose data, for meta device init scenario."""
     return HAVE_TE_MXFP8TENSOR and module.fp8_meta["recipe"].mxfp8()
 
 
+@internal_api
 def fp8_discard_transpose_cache(tensor: torch.Tensor) -> None:
     """Discard the transpose cache of a FP8 tensor."""
     assert is_float8tensor(tensor), f"Type {type(tensor)} is not a FP8 tensor"
@@ -185,6 +199,7 @@ def fp8_discard_transpose_cache(tensor: torch.Tensor) -> None:
         tensor.update_usage(rowwise_usage=True, columnwise_usage=False)
 
 
+@internal_api
 def fp8_create_transpose_cache(tensors: List[torch.Tensor]) -> None:
     """Create the transpose cache of a FP8 tensor."""
     if HAVE_TE_POST_ALL_GATHER_PROCESSING:
@@ -193,6 +208,7 @@ def fp8_create_transpose_cache(tensors: List[torch.Tensor]) -> None:
         _fp8_create_transpose_cache_fallback(tensors)
 
 
+@internal_api
 def _fp8_create_transpose_cache_fallback(tensors: List[torch.Tensor]) -> None:
     if not isinstance(tensors, list):
         tensors = [tensors]
@@ -204,6 +220,7 @@ def _fp8_create_transpose_cache_fallback(tensors: List[torch.Tensor]) -> None:
             tensor._create_columnwise()
 
 
+@internal_api
 def fp8_set_raw_data(tensor: torch.Tensor, data: torch.Tensor, set_transpose: bool = False) -> None:
     """Set the raw data of a Transformer Engine Float8Tensor."""
     assert is_float8tensor(tensor), f"Type {type(tensor)} is not a FP8 tensor"
@@ -222,6 +239,7 @@ def fp8_set_raw_data(tensor: torch.Tensor, data: torch.Tensor, set_transpose: bo
     setattr(tensor, data_attr, data)
 
 
+@internal_api
 def fp8_get_raw_data(tensor: torch.Tensor, get_transpose: bool = False) -> torch.Tensor:
     """Get the underlying raw storage of a FP8 tensor."""
     assert is_float8tensor(tensor), f"Type {type(tensor)} is not a FP8 tensor"
@@ -235,6 +253,7 @@ def fp8_get_raw_data(tensor: torch.Tensor, get_transpose: bool = False) -> torch
     return getattr(tensor, data_attr)
 
 
+@internal_api
 def fp8_dequantize(tensor: torch.Tensor) -> torch.Tensor:
     """Dequantize a FP8 tensor to a higher precision."""
     assert is_float8tensor(tensor), f"Type {type(tensor)} is not a FP8 tensor"
@@ -244,6 +263,7 @@ def fp8_dequantize(tensor: torch.Tensor) -> torch.Tensor:
     return tensor.dequantize()
 
 
+@internal_api
 def fp8_quantize(
     model_params: List[torch.Tensor],
     main_params: List[torch.Tensor],
@@ -266,6 +286,7 @@ def fp8_quantize(
         )
 
 
+@internal_api
 def _fp8_quantize_fallback(
     model_params: List[torch.Tensor],
     main_params: List[torch.Tensor],

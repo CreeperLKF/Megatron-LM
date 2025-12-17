@@ -100,6 +100,14 @@ except ImportError:
 
 NCCL_MEMORY_POOL = None
 
+try:
+    from megatron.core.utils import internal_api
+
+except ImportError:
+    from contextlib import nullcontext
+
+    internal_api = nullcontext
+
 
 def _p_assert(cond: Any, s: str, raise_assertion_error: bool = True) -> None:
     """Alternate to ``assert`` when in the backward context to print the error
@@ -787,6 +795,7 @@ class FixedPoolAllocator(TemporaryBucketAllocator):
         self.backup_allocator.free(bucket_id)
 
 
+@internal_api
 class DataParallelBuffer:
     """
     A class that manages the data parallel buffer for Fully Sharded Data Parallel (FSDP) training.
@@ -3255,6 +3264,7 @@ class PrefetchOrder(Enum):
     BACKWARD_PASS_ORDER = 1
 
 
+@internal_api
 class AllGatherPipeline:
     """
     Pipeline for all-gathering parameters.
